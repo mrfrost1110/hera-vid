@@ -26,20 +26,15 @@ function bboxDist(a: BBox, b: BBox): number {
 
 interface TrackedBox {
   trackId: number;
-  // Current interpolated position
   bbox: BBox;
-  // Target position from last VLM result
   targetBbox: BBox;
-  // Velocity (% per second)
   vx: number;
   vy: number;
   vw: number;
   vh: number;
-  // Display info
   id: number;
   label: string;
   status: "safe" | "violation" | "warning" | "critical";
-  // When the last VLM update arrived
   lastUpdate: number;
 }
 
@@ -51,7 +46,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
   const rafRef = useRef<number>(0);
   const lastFrameTime = useRef<number>(0);
 
-  // Handle new VLM results — match, calculate velocity, set targets
   useEffect(() => {
     const now = performance.now();
     const prev = trackedRef.current;
@@ -83,10 +77,9 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
       if (bestIdx >= 0) {
         matched.add(bestIdx);
         const old = prev[bestIdx];
-        const dt = (now - old.lastUpdate) / 1000; // seconds since last update
-        const safedt = dt > 0.1 ? dt : 1; // avoid division by tiny dt
+        const dt = (now - old.lastUpdate) / 1000;
+        const safedt = dt > 0.1 ? dt : 1;
 
-        // Calculate velocity from old target to new target
         const vx = (box.bbox.x - old.targetBbox.x) / safedt;
         const vy = (box.bbox.y - old.targetBbox.y) / safedt;
         const vw = (box.bbox.w - old.targetBbox.w) / safedt;
@@ -94,7 +87,7 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
 
         result.push({
           trackId: old.trackId,
-          bbox: { ...old.bbox }, // keep current interpolated position — will lerp to target
+          bbox: { ...old.bbox },
           targetBbox: { ...box.bbox },
           vx, vy, vw, vh,
           id: box.id,
@@ -103,7 +96,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
           lastUpdate: now,
         });
       } else {
-        // New detection
         result.push({
           trackId: nextTrackId++,
           bbox: { ...box.bbox },
@@ -121,7 +113,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
     setRenderBoxes(result.map((b) => ({ ...b, bbox: { ...b.bbox } })));
   }, [boxes]);
 
-  // Animation loop — interpolate boxes toward targets + extrapolate with velocity
   const animate = useCallback(() => {
     const now = performance.now();
     const dt = lastFrameTime.current ? (now - lastFrameTime.current) / 1000 : 0.016;
@@ -137,14 +128,12 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
     for (const box of tracked) {
       const timeSinceUpdate = (now - box.lastUpdate) / 1000;
 
-      // Extrapolate target position based on velocity
       const predictedX = box.targetBbox.x + box.vx * timeSinceUpdate;
       const predictedY = box.targetBbox.y + box.vy * timeSinceUpdate;
       const predictedW = box.targetBbox.w + box.vw * timeSinceUpdate;
       const predictedH = box.targetBbox.h + box.vh * timeSinceUpdate;
 
-      // Lerp current position toward predicted position (smooth follow)
-      const lerpSpeed = 8; // higher = snappier tracking
+      const lerpSpeed = 8;
       const lerp = 1 - Math.exp(-lerpSpeed * dt);
 
       const newX = box.bbox.x + (predictedX - box.bbox.x) * lerp;
@@ -152,13 +141,11 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
       const newW = box.bbox.w + (predictedW - box.bbox.w) * lerp;
       const newH = box.bbox.h + (predictedH - box.bbox.h) * lerp;
 
-      // Clamp to valid range
       box.bbox.x = Math.max(0, Math.min(95, newX));
       box.bbox.y = Math.max(0, Math.min(95, newY));
       box.bbox.w = Math.max(2, Math.min(100 - box.bbox.x, newW));
       box.bbox.h = Math.max(2, Math.min(100 - box.bbox.y, newH));
 
-      // Dampen velocity over time so boxes don't fly off screen
       if (timeSinceUpdate > 2) {
         box.vx *= 0.95;
         box.vy *= 0.95;
@@ -176,7 +163,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
     rafRef.current = requestAnimationFrame(animate);
   }, []);
 
-  // Start/stop animation loop
   useEffect(() => {
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
@@ -202,7 +188,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
               borderRadius: "4px",
             }}
           >
-            {/* Label */}
             <div
               className="absolute -top-5 left-0 px-1.5 py-0.5 text-[10px] font-bold rounded-sm whitespace-nowrap"
               style={{ backgroundColor: c.border, color: "#000" }}
@@ -210,7 +195,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
               #{box.id} {box.label}
             </div>
 
-            {/* Corner markers */}
             <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2" style={{ borderColor: c.border }} />
             <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2" style={{ borderColor: c.border }} />
             <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2" style={{ borderColor: c.border }} />

@@ -43,7 +43,6 @@ export const MODEL_OPTIONS: ModelOption[] = [
   { id: "seed-1-8-251228", label: "Seed 1.8", provider: "byteplus" },
 ];
 
-// Bounding box as percentage of image (0-100)
 export interface BBox {
   x: number;
   y: number;
@@ -51,7 +50,6 @@ export interface BBox {
   h: number;
 }
 
-// Unified overlay box for rendering on video
 export interface DetectionBox {
   id: number;
   bbox: BBox;

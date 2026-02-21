@@ -52,7 +52,6 @@ body {
   border: 2px solid var(--color-warning);
 }
 
-/* Scrollbar styling */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

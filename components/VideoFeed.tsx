@@ -33,15 +33,12 @@ export default function VideoFeed({
   const [cameraError, setCameraError] = useState<string>("");
   const [aspectRatio, setAspectRatio] = useState<string>("16/9");
 
-  // Store callback in ref so interval never resets due to callback identity changes
   const onFrameCaptureRef = useRef(onFrameCapture);
   onFrameCaptureRef.current = onFrameCapture;
 
-  // Store interval in ref so the loop can read latest value without resetting
   const intervalRef = useRef(interval);
   intervalRef.current = interval;
 
-  // Start webcam
   const startWebcam = useCallback(async () => {
     setCameraError("");
     try {
@@ -58,7 +55,6 @@ export default function VideoFeed({
     }
   }, []);
 
-  // Stop webcam
   const stopWebcam = useCallback(() => {
     if (videoRef.current?.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
@@ -67,7 +63,6 @@ export default function VideoFeed({
     }
   }, []);
 
-  // Handle source changes
   useEffect(() => {
     if (source === "webcam") {
       setVideoSrc("");
@@ -79,7 +74,6 @@ export default function VideoFeed({
     return () => stopWebcam();
   }, [source, startWebcam, stopWebcam]);
 
-  // Stable frame capture function — never changes identity
   const captureFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -96,15 +90,11 @@ export default function VideoFeed({
     onFrameCaptureRef.current(dataUrl);
   }, []);
 
-  // Analysis loop — only resets when isAnalyzing changes
   useEffect(() => {
     if (!isAnalyzing) return;
 
-    // Capture first frame immediately
     captureFrame();
 
-    // Then capture at interval — reads intervalRef.current each tick
-    // so slider changes take effect without resetting the loop
     let timerId: ReturnType<typeof setTimeout>;
     const scheduleNext = () => {
       timerId = setTimeout(() => {
@@ -117,7 +107,6 @@ export default function VideoFeed({
     return () => clearTimeout(timerId);
   }, [isAnalyzing, captureFrame]);
 
-  // Detect video dimensions and set aspect ratio dynamically
   const handleVideoMetadata = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -133,14 +122,13 @@ export default function VideoFeed({
     if (file) {
       const url = URL.createObjectURL(file);
       setVideoSrc(url);
-      setAspectRatio("16/9"); // Reset until metadata loads
+      setAspectRatio("16/9");
       stopWebcam();
     }
   };
 
   return (
     <div className="relative flex flex-col bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
-      {/* Video — adapts to portrait/landscape with max height */}
       <div
         className="relative bg-black"
         style={{ aspectRatio, maxHeight: "75vh" }}
@@ -156,18 +144,14 @@ export default function VideoFeed({
           onLoadedMetadata={handleVideoMetadata}
         />
 
-        {/* Hidden canvas for frame capture */}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Detection bounding boxes */}
         <DetectionOverlay boxes={detectionBoxes} />
 
-        {/* Status overlay */}
         <div className="absolute top-3 left-3 z-10">
           <StatusBadge status={overallStatus} label={statusLabel} large />
         </div>
 
-        {/* Camera error */}
         {cameraError && source === "webcam" && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90">
             <div className="text-center px-6">
@@ -185,7 +169,6 @@ export default function VideoFeed({
           </div>
         )}
 
-        {/* Video file placeholder */}
         {source === "video" && !videoSrc && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90">
             <div className="text-center px-6">
@@ -210,7 +193,6 @@ export default function VideoFeed({
           </div>
         )}
 
-        {/* Analyzing indicator — always visible when running */}
         {isAnalyzing && (
           <div className="absolute bottom-4 right-4 flex items-center gap-2.5 px-4 py-2 bg-gray-900/90 rounded-lg border border-green-500/40 shadow-lg shadow-green-500/10 z-10">
             <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
@@ -219,7 +201,6 @@ export default function VideoFeed({
         )}
       </div>
 
-      {/* Video source change for file mode */}
       {source === "video" && videoSrc && (
         <div className="flex items-center justify-between px-3 py-2 bg-gray-800/50 border-t border-gray-800">
           <span className="text-xs text-gray-500">Video loaded</span>

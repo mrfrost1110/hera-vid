@@ -26,9 +26,7 @@ export function useAudioAlert() {
       osc.start();
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
       osc.stop(ctx.currentTime + 0.3);
-    } catch {
-      // Audio not available
-    }
+    } catch {}
   }, []);
 
   return { playBeep, setEnabled };

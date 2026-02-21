@@ -37,7 +37,6 @@ export default function SnapshotModal({ alert, onClose }: SnapshotModalProps) {
         className="relative max-w-3xl w-full mx-4 bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <span className={`text-sm font-bold uppercase ${t.color}`}>{t.label}</span>
@@ -54,7 +53,6 @@ export default function SnapshotModal({ alert, onClose }: SnapshotModalProps) {
           </button>
         </div>
 
-        {/* Snapshot Image */}
         {alert.snapshot && (
           <div className="relative bg-black">
             <img
@@ -62,7 +60,6 @@ export default function SnapshotModal({ alert, onClose }: SnapshotModalProps) {
               alt="Detection snapshot"
               className="w-full object-contain max-h-[60vh]"
             />
-            {/* Bounding boxes on snapshot */}
             {alert.boxes && alert.boxes.length > 0 && (
               <div className="absolute inset-0">
                 {alert.boxes.map((box) => {
@@ -99,7 +96,6 @@ export default function SnapshotModal({ alert, onClose }: SnapshotModalProps) {
           </div>
         )}
 
-        {/* Details */}
         <div className="px-5 py-4 space-y-2">
           <p className="text-sm text-gray-200">{alert.message}</p>
 

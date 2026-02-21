@@ -85,7 +85,6 @@ export function useAnalysis() {
     (data: HelmetResult, frame: string) => {
       const a = data.frame_analysis;
 
-      // Extract bounding boxes
       const boxes: DetectionBox[] = (a.persons || [])
         .filter((p) => p.bbox)
         .map((p) => ({
@@ -129,7 +128,6 @@ export function useAnalysis() {
     (data: FatigueResult, frame: string) => {
       const a = data.frame_analysis;
 
-      // Extract face bounding box
       const boxes: DetectionBox[] = [];
       if (a.face_detected && a.bbox) {
         const level = a.alert_level;
@@ -185,7 +183,6 @@ export function useAnalysis() {
     (data: CombinedResult, frame: string) => {
       const s = data.frame_analysis.summary;
 
-      // Extract bounding boxes
       const boxes: DetectionBox[] = (data.frame_analysis.detections || [])
         .filter((d) => d.bbox)
         .map((d) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { DetectionBox, BBox } from "@/lib/types";
+import { DetectionBox, BBox, PersonClassification, PPEItem } from "@/lib/types";
 
 interface DetectionOverlayProps {
   boxes: DetectionBox[];
@@ -35,6 +35,7 @@ interface TrackedBox {
   id: number;
   label: string;
   status: "safe" | "violation" | "warning" | "critical";
+  classification?: PersonClassification;
   lastUpdate: number;
 }
 
@@ -93,6 +94,7 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
           id: box.id,
           label: box.label,
           status: box.status,
+          classification: box.classification,
           lastUpdate: now,
         });
       } else {
@@ -104,6 +106,7 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
           id: box.id,
           label: box.label,
           status: box.status,
+          classification: box.classification,
           lastUpdate: now,
         });
       }
@@ -141,10 +144,24 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
       const newW = box.bbox.w + (predictedW - box.bbox.w) * lerp;
       const newH = box.bbox.h + (predictedH - box.bbox.h) * lerp;
 
-      box.bbox.x = Math.max(0, Math.min(95, newX));
-      box.bbox.y = Math.max(0, Math.min(95, newY));
-      box.bbox.w = Math.max(2, Math.min(100 - box.bbox.x, newW));
-      box.bbox.h = Math.max(2, Math.min(100 - box.bbox.y, newH));
+      const clampedX = Math.max(0, Math.min(95, newX));
+      const clampedY = Math.max(0, Math.min(95, newY));
+      const clampedW = Math.max(2, Math.min(100 - clampedX, newW));
+      const clampedH = Math.max(2, Math.min(100 - clampedY, newH));
+
+      if (
+        Math.abs(clampedX - box.bbox.x) > 0.01 ||
+        Math.abs(clampedY - box.bbox.y) > 0.01 ||
+        Math.abs(clampedW - box.bbox.w) > 0.01 ||
+        Math.abs(clampedH - box.bbox.h) > 0.01
+      ) {
+        changed = true;
+      }
+
+      box.bbox.x = clampedX;
+      box.bbox.y = clampedY;
+      box.bbox.w = clampedW;
+      box.bbox.h = clampedH;
 
       if (timeSinceUpdate > 2) {
         box.vx *= 0.95;
@@ -152,8 +169,6 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
         box.vw *= 0.95;
         box.vh *= 0.95;
       }
-
-      changed = true;
     }
 
     if (changed) {
@@ -168,16 +183,20 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [animate]);
 
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+
   if (renderBoxes.length === 0) return null;
 
   return (
     <div className="absolute inset-0 pointer-events-none">
       {renderBoxes.map((box) => {
         const c = statusColors[box.status] || statusColors.safe;
+        const cls = box.classification;
+        const isHovered = hoveredId === box.trackId;
         return (
           <div
             key={box.trackId}
-            className="absolute"
+            className="absolute pointer-events-auto"
             style={{
               left: `${box.bbox.x}%`,
               top: `${box.bbox.y}%`,
@@ -187,13 +206,60 @@ export default function DetectionOverlay({ boxes }: DetectionOverlayProps) {
               backgroundColor: c.bg,
               borderRadius: "4px",
             }}
+            onMouseEnter={() => setHoveredId(box.trackId)}
+            onMouseLeave={() => setHoveredId(null)}
           >
             <div
-              className="absolute -top-5 left-0 px-1.5 py-0.5 text-[10px] font-bold rounded-sm whitespace-nowrap"
+              className="absolute -top-5 left-0 px-1.5 py-0.5 text-[10px] font-bold rounded-sm max-w-48 truncate"
               style={{ backgroundColor: c.border, color: "#000" }}
             >
               #{box.id} {box.label}
             </div>
+
+            {isHovered && cls && (
+              <div
+                className={`absolute z-50 w-56 p-2.5 rounded-lg border border-gray-700 bg-gray-900/95 backdrop-blur text-[11px] text-gray-200 shadow-xl pointer-events-none ${
+                  box.bbox.x + box.bbox.w > 65 ? "right-full mr-2" : "left-full ml-2"
+                } ${box.bbox.y + box.bbox.h > 70 ? "bottom-0" : "top-0"}`}
+              >
+                {cls.activity && (
+                  <div className="mb-1.5">
+                    <span className="text-gray-500 uppercase text-[9px] tracking-wider">Activity</span>
+                    <p className="text-gray-200">{cls.activity}</p>
+                  </div>
+                )}
+                {cls.ppe && (
+                  <div className="mb-1.5">
+                    <span className="text-gray-500 uppercase text-[9px] tracking-wider">PPE</span>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {(Object.entries(cls.ppe) as [string, PPEItem][]).map(([key, item]) => (
+                        <span
+                          key={key}
+                          className={`px-1.5 py-0.5 rounded text-[10px] ${
+                            item.present === true
+                              ? "bg-green-900/40 text-green-400"
+                              : item.present === false
+                              ? "bg-red-900/40 text-red-400"
+                              : "bg-gray-800 text-gray-500"
+                          }`}
+                        >
+                          {key.replace(/_/g, " ")}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {cls.equipment && cls.equipment.length > 0 && cls.equipment[0] !== "none" && (
+                  <div className="mb-1.5">
+                    <span className="text-gray-500 uppercase text-[9px] tracking-wider">Equipment</span>
+                    <p className="text-gray-300">{cls.equipment.join(", ")}</p>
+                  </div>
+                )}
+                {cls.summary && (
+                  <p className="text-gray-400 italic border-t border-gray-800 pt-1.5 mt-1.5">{cls.summary}</p>
+                )}
+              </div>
+            )}
 
             <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2" style={{ borderColor: c.border }} />
             <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2" style={{ borderColor: c.border }} />

@@ -1,21 +1,25 @@
 "use client";
 
-import { ModelOption, MODEL_OPTIONS } from "@/lib/types";
+import { AnalysisPipeline, ModelOption, YOLO_MODEL_OPTIONS, LLM_MODEL_OPTIONS } from "@/lib/types";
 
 interface ModelSelectorProps {
   selected: ModelOption;
   onChange: (model: ModelOption) => void;
+  pipeline: AnalysisPipeline;
 }
 
 const providerColor: Record<string, string> = {
+  local: "bg-green-600",
   byteplus: "bg-cyan-600",
   openrouter: "bg-orange-600",
 };
 
-export default function ModelSelector({ selected, onChange }: ModelSelectorProps) {
+export default function ModelSelector({ selected, onChange, pipeline }: ModelSelectorProps) {
+  const options = pipeline === "yolov8" ? YOLO_MODEL_OPTIONS : LLM_MODEL_OPTIONS;
+
   return (
     <div className="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5">
-      {MODEL_OPTIONS.map((m) => (
+      {options.map((m) => (
         <button
           key={m.id}
           onClick={() => onChange(m)}

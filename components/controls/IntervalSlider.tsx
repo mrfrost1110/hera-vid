@@ -3,9 +3,31 @@
 interface IntervalSliderProps {
   value: number;
   onChange: (ms: number) => void;
+  realtimeMode?: boolean;
 }
 
-export default function IntervalSlider({ value, onChange }: IntervalSliderProps) {
+export default function IntervalSlider({ value, onChange, realtimeMode }: IntervalSliderProps) {
+  if (realtimeMode) {
+    const fps = Math.round(1000 / value);
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] text-gray-500 uppercase tracking-wider">FPS</span>
+        <input
+          type="range"
+          min={100}
+          max={500}
+          step={50}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="w-16 accent-green-500"
+        />
+        <span className="text-[11px] text-green-400 font-mono w-8 tabular-nums">
+          {fps}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-[10px] text-gray-500 uppercase tracking-wider">Int</span>

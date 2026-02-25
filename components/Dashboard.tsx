@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { VideoSource } from "@/lib/types";
-import { useAnalysis } from "@/hooks/useAnalysis";
+import { VideoSource, AnalysisPipeline } from "@/lib/types";
+import { usePipelineAnalysis } from "@/hooks/usePipelineAnalysis";
 import Header from "./Header";
 import VideoFeed from "./VideoFeed";
 import AlertFeed from "./AlertFeed";
+import ClassificationLog from "./ClassificationLog";
 import StatsBar from "./StatsBar";
 import ControlPanel from "./ControlPanel";
 
 export default function Dashboard() {
   const [source, setSource] = useState<VideoSource>("webcam");
-  const [interval, setInterval] = useState(3000);
+  const [pipeline, setPipeline] = useState<AnalysisPipeline>("yolov8");
+  const [interval, setInterval] = useState(150);
+  const [sidebarTab, setSidebarTab] = useState<"alerts" | "details">("alerts");
 
   const {
     mode,
@@ -24,12 +27,24 @@ export default function Dashboard() {
     statusLabel,
     latency,
     detectionBoxes,
+    sceneSummary,
     setMode,
     setSelectedModel,
     toggleSound,
     toggleAnalysis,
     handleFrameCapture,
-  } = useAnalysis();
+  } = usePipelineAnalysis(pipeline);
+
+  const handlePipelineChange = useCallback(
+    (newPipeline: AnalysisPipeline) => {
+      if (isAnalyzing) {
+        toggleAnalysis();
+      }
+      setPipeline(newPipeline);
+      setInterval(newPipeline === "yolov8" ? 150 : 3000);
+    },
+    [isAnalyzing, toggleAnalysis]
+  );
 
   const handleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -61,11 +76,40 @@ export default function Dashboard() {
             interval={interval}
             detectionBoxes={detectionBoxes}
             onFrameCapture={handleFrameCapture}
+            realtimeMode={pipeline === "yolov8"}
           />
         </div>
 
-        <div className="w-80 flex-shrink-0 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-          <AlertFeed alerts={alerts} />
+        <div className="w-80 flex-shrink-0 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden flex flex-col">
+          <div className="flex border-b border-gray-800 shrink-0">
+            <button
+              className={`flex-1 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                sidebarTab === "alerts"
+                  ? "text-gray-200 border-b-2 border-blue-500"
+                  : "text-gray-500 hover:text-gray-400"
+              }`}
+              onClick={() => setSidebarTab("alerts")}
+            >
+              Alerts
+            </button>
+            <button
+              className={`flex-1 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                sidebarTab === "details"
+                  ? "text-gray-200 border-b-2 border-blue-500"
+                  : "text-gray-500 hover:text-gray-400"
+              }`}
+              onClick={() => setSidebarTab("details")}
+            >
+              Details
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {sidebarTab === "alerts" ? (
+              <AlertFeed alerts={alerts} />
+            ) : (
+              <ClassificationLog boxes={detectionBoxes} sceneSummary={sceneSummary} />
+            )}
+          </div>
         </div>
       </div>
 
@@ -76,12 +120,14 @@ export default function Dashboard() {
         isAnalyzing={isAnalyzing}
         interval={interval}
         soundEnabled={soundEnabled}
+        pipeline={pipeline}
         onSourceChange={setSource}
         onModeChange={setMode}
         onModelChange={setSelectedModel}
         onToggleAnalysis={toggleAnalysis}
         onIntervalChange={setInterval}
         onSoundToggle={toggleSound}
+        onPipelineChange={handlePipelineChange}
       />
     </div>
   );

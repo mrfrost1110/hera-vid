@@ -15,6 +15,7 @@ interface VideoFeedProps {
   interval: number;
   detectionBoxes: DetectionBox[];
   onFrameCapture: (frame: string) => void;
+  realtimeMode?: boolean;
 }
 
 export default function VideoFeed({
@@ -25,6 +26,7 @@ export default function VideoFeed({
   interval,
   detectionBoxes,
   onFrameCapture,
+  realtimeMode,
 }: VideoFeedProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -74,6 +76,9 @@ export default function VideoFeed({
     return () => stopWebcam();
   }, [source, startWebcam, stopWebcam]);
 
+  const realtimeModeRef = useRef(realtimeMode);
+  realtimeModeRef.current = realtimeMode;
+
   const captureFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -83,10 +88,19 @@ export default function VideoFeed({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = 480;
-    canvas.height = 360;
-    ctx.drawImage(video, 0, 0, 480, 360);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+    // Preserve video aspect ratio — scale to fit within maxDim
+    const maxDim = realtimeModeRef.current ? 640 : 640;
+    const quality = realtimeModeRef.current ? 0.7 : 0.7;
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    const scale = Math.min(maxDim / vw, maxDim / vh);
+    const w = Math.round(vw * scale);
+    const h = Math.round(vh * scale);
+
+    canvas.width = w;
+    canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/jpeg", quality);
     onFrameCaptureRef.current(dataUrl);
   }, []);
 

@@ -38,3 +38,8 @@ next-env.d.ts
 
 # bun
 bun.lockb
+
+# python backend
+backend/.venv/
+backend/__pycache__/
+backend/.env

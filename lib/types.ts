@@ -1,6 +1,7 @@
 export type DetectionMode = "helmet" | "fatigue" | "combined";
 export type VideoSource = "webcam" | "video";
-export type Provider = "byteplus" | "openrouter";
+export type Provider = "byteplus" | "openrouter" | "local";
+export type AnalysisPipeline = "yolov8" | "llm";
 
 export interface ModelOption {
   id: string;
@@ -8,7 +9,13 @@ export interface ModelOption {
   provider: Provider;
 }
 
-export const MODEL_OPTIONS: ModelOption[] = [
+export const YOLO_MODEL_OPTIONS: ModelOption[] = [
+  { id: "yolov8n", label: "YOLOv8 Nano", provider: "local" },
+  { id: "yolov8s", label: "YOLOv8 Small", provider: "local" },
+  { id: "yolov8m", label: "YOLOv8 Medium", provider: "local" },
+];
+
+export const LLM_MODEL_OPTIONS: ModelOption[] = [
   {
     id: "qwen/qwen3.5-plus-02-15",
     label: "Qwen 3.5 Plus",
@@ -43,6 +50,8 @@ export const MODEL_OPTIONS: ModelOption[] = [
   { id: "seed-1-8-251228", label: "Seed 1.8", provider: "byteplus" },
 ];
 
+export const MODEL_OPTIONS: ModelOption[] = [...YOLO_MODEL_OPTIONS, ...LLM_MODEL_OPTIONS];
+
 export interface BBox {
   x: number;
   y: number;
@@ -50,11 +59,34 @@ export interface BBox {
   h: number;
 }
 
+export interface PPEItem {
+  present: boolean | "unknown";
+  type: string;
+  color?: string;
+}
+
+export interface PPEInventory {
+  helmet: PPEItem;
+  vest: PPEItem;
+  gloves: PPEItem;
+  goggles: PPEItem;
+  safety_shoes: PPEItem;
+}
+
+export interface PersonClassification {
+  activity: string;
+  ppe?: PPEInventory;
+  equipment?: string[];
+  clothing?: { compliant: boolean; description: string };
+  summary: string;
+}
+
 export interface DetectionBox {
   id: number;
   bbox: BBox;
   label: string;
   status: "safe" | "violation" | "warning" | "critical";
+  classification?: PersonClassification;
 }
 
 export interface HelmetPerson {
@@ -72,6 +104,7 @@ export interface HelmetResult {
     violations_count: number;
     overall_status: "COMPLIANT" | "VIOLATION_DETECTED" | "NO_PERSONS_DETECTED";
     alert_message: string | null;
+    scene_summary?: string;
   };
 }
 
@@ -87,9 +120,11 @@ export interface FatigueResult {
       fatigue_score: number;
       confidence: number;
     };
+    classification?: { activity: string; summary: string };
     alert_level: "NORMAL" | "WARNING" | "CRITICAL";
     alert_message: string | null;
     recommendation: string;
+    scene_summary?: string;
   };
 }
 
@@ -108,6 +143,7 @@ export interface CombinedDetection {
     | "FATIGUE_WARNING"
     | "MULTIPLE_VIOLATIONS";
   description: string;
+  classification?: PersonClassification;
 }
 
 export interface CombinedResult {
@@ -120,6 +156,7 @@ export interface CombinedResult {
       fatigue_warnings: number;
       overall_status: "ALL_CLEAR" | "ATTENTION_NEEDED" | "IMMEDIATE_ACTION";
     };
+    scene_summary?: string;
   };
 }
 

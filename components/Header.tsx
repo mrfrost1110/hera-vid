@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 interface HeaderProps {
   isAnalyzing: boolean;
   latency: number | null;
@@ -37,6 +39,12 @@ export default function Header({ isAnalyzing, latency, onFullscreen }: HeaderPro
       </div>
 
       <div className="flex items-center gap-4">
+        <Link
+          href="/admin"
+          className="px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+        >
+          Manage Faces
+        </Link>
         <button
           onClick={onFullscreen}
           className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"

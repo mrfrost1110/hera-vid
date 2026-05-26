@@ -87,6 +87,15 @@ export interface DetectionBox {
   label: string;
   status: "safe" | "violation" | "warning" | "critical";
   classification?: PersonClassification;
+  personName?: string;
+}
+
+export interface FaceEntry {
+  id: number;
+  name: string;
+  image_path: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface HelmetPerson {
